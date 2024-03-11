@@ -1,5 +1,8 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <chrono>
+
+// g++ -o templ template.cpp `pkg-config --libs --static opencv4`
 
 int main(int argc, char** argv) {
     if (argc < 3) {
@@ -7,7 +10,8 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    cv::Mat templ = cv::imread(argv[1], cv::IMREAD_COLOR);
+    // cv::Mat templ = cv::imread(argv[1], cv::IMREAD_COLOR);
+    cv::Mat templ = cv::imread(argv[1], cv::IMREAD_GRAYSCALE);
 
     cv::Mat mask;
     if (argc == 4) {
@@ -35,14 +39,20 @@ int main(int argc, char** argv) {
     cv::Mat result;
 
     while (cap.read(frame)) {
+	auto start = std::chrono::high_resolution_clock::now();
+	// 使用灰度图进行模板匹配时，耗时0.07 秒，同样的数据采用彩图进行匹配需要花费0.21s,相差了3倍
+        cv::cvtColor(frame, frame, cv::COLOR_RGB2GRAY); //将原图转换为灰度图像
 	if (argc == 4) {
 	    // 使用mask 时，图像格式必须一致，也就是都要灰度图
 	    // 只有 TM_CCORR_NORMED 模式下使用 mask 掩码模板成功
-            cv::cvtColor(frame, frame, cv::COLOR_RGB2GRAY); //将原图转换为灰度图像
 	    cv::matchTemplate(frame, templ, result, cv::TM_CCORR_NORMED, mask);
 	} else {
 	    cv::matchTemplate(frame, templ, result, cv::TM_CCOEFF_NORMED);
 	}
+	auto end = std::chrono::high_resolution_clock::now();
+	// 计算执行时间
+	std::chrono::duration<double> duration = end - start;
+	std::cout << "函数执行时间: " << duration.count() << " 秒" << std::endl;
 
         double minVal, maxVal;
         cv::Point minLoc, maxLoc;
