@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
          std::cout << "templ.size = " << templ.rows << "x" << templ.cols << std::endl;
 	 return 1;
        }
-       cv::cvtColor(templ, templ, cv::COLOR_RGB2GRAY); //将原图转换为灰度图像
+       if (templ.channels() > 1) cv::cvtColor(templ, templ, cv::COLOR_RGB2GRAY); //将原图转换为灰度图像
     }
 
     if (templ.empty()) {
@@ -42,6 +42,7 @@ int main(int argc, char** argv) {
 	auto start = std::chrono::high_resolution_clock::now();
 	// 使用灰度图进行模板匹配时，耗时0.07 秒，同样的数据采用彩图进行匹配需要花费0.21s,相差了3倍
         cv::cvtColor(frame, frame, cv::COLOR_RGB2GRAY); //将原图转换为灰度图像
+	// 匹配的准确度，全彩图匹配成功率略高
 	if (argc == 4) {
 	    // 使用mask 时，图像格式必须一致，也就是都要灰度图
 	    // 只有 TM_CCORR_NORMED 模式下使用 mask 掩码模板成功
