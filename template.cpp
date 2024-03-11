@@ -46,6 +46,7 @@ int main(int argc, char** argv) {
 	if (argc == 4) {
 	    // 使用mask 时，图像格式必须一致，也就是都要灰度图
 	    // 只有 TM_CCORR_NORMED 模式下使用 mask 掩码模板成功
+	    // 有mask的模式很难区别是否检测到，结果变化太小
 	    cv::matchTemplate(frame, templ, result, cv::TM_CCORR_NORMED, mask);
 	} else {
 	    cv::matchTemplate(frame, templ, result, cv::TM_CCOEFF_NORMED);
@@ -68,7 +69,8 @@ int main(int argc, char** argv) {
         cv::resize(frame, frame, cv::Size(frame.cols/2, frame.rows/2));
         // Convert maxVal to string
         std::stringstream ss;
-        ss << "Similarity: " << maxVal;
+        ss << "Similarity: (max)" << maxVal;
+	ss << "  (min) " << minVal;
 	std::cout << ss.str() << std::endl;
 
         // Print maxVal on the image
