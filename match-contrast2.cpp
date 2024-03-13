@@ -48,6 +48,28 @@ void blendImages(Mat& largeImage, Mat& smallImage, int startX, int startY)
     }
 }
 
+pair<Mat, Mat> plotHistogram(const Mat& image, int histSize, const float* histRange)
+{
+    Mat hist;
+    calcHist(&image, 1, 0, Mat(), hist, 1, &histSize, &histRange, true, false);
+    normalize(hist, hist, 0, 1, NORM_MINMAX, -1, Mat());
+
+    int hist_w = 512;
+    int hist_h = 400;
+    int bin_w = cvRound((double)hist_w / histSize);
+    Mat histImage(hist_h, hist_w, CV_8UC1, Scalar(0));
+    normalize(hist, hist, 0, histImage.rows, NORM_MINMAX, -1, Mat());
+
+    for (int i = 1; i < histSize; i++)
+    {
+        line(histImage, Point(bin_w * (i - 1), hist_h - cvRound(hist.at<float>(i - 1))),
+             Point(bin_w * i, hist_h - cvRound(hist.at<float>(i))),
+             Scalar(255), 2, 8, 0);
+    }
+
+    return make_pair(histImage, hist);
+}
+
 int main(int argc, char** argv) {
     if (argc < 3) {
         std::cerr << "Usage: ./template_matching_video <template_image_path> <video_path> [phash|hist|ssim]" << std::endl;
@@ -81,26 +103,11 @@ int main(int argc, char** argv) {
     int histSize = 256;
     float range[] = { 0, 256 };
     const float* histRange = { range };
-    bool uniform = true;
-    bool accumulate = false;
 
-    Mat hist_1, hist_2;
+    pair<Mat, Mat> result1 = plotHistogram(templ, histSize, histRange);
 
-    calcHist(&templ, 1, 0, Mat(), hist_1, 1, &histSize, &histRange, uniform, accumulate);
-    normalize(hist_1, hist_1, 0, 1, NORM_MINMAX, -1, Mat());
-    // 绘制直方图
-    int hist_w = 512;
-    int hist_h = 400;
-    int bin_w = cvRound((double)hist_w / histSize);
-    Mat histImage1(hist_h, hist_w, CV_8UC1, Scalar(0));
-    normalize(hist_1, hist_1, 0, histImage1.rows, NORM_MINMAX, -1, Mat());
-
-    for (int i = 1; i < histSize; i++)
-    {
-        line(histImage1, Point(bin_w * (i - 1), hist_h - cvRound(hist_1.at<float>(i - 1))),
-             Point(bin_w * (i), hist_h - cvRound(hist_1.at<float>(i))),
-             Scalar(255), 2, 8, 0);
-    }
+    Mat histImage1 = result1.first;
+    Mat histData1 = result1.second;
 
     while (cap.read(frame)) {
         auto start = std::chrono::high_resolution_clock::now();
@@ -130,34 +137,25 @@ int main(int argc, char** argv) {
 
         cv::Rect rectangle(matchLoc, cv::Point( matchLoc.x + templ.cols , matchLoc.y + templ.rows ));
         cv::Mat matchedImage = frame(rectangle);
-        
+
 /****************************************/
 
-        calcHist(&matchedImage, 1, 0, Mat(), hist_2, 1, &histSize, &histRange, uniform, accumulate);
-        normalize(hist_2, hist_2, 0, 1, NORM_MINMAX, -1, Mat());
+        pair<Mat, Mat> result2 = plotHistogram(matchedImage, histSize, histRange);
+
+				Mat histImage2 = result2.first;
+				Mat histData2 = result2.second;
 
         // 比较直方图
-        double result = compareHist(hist_1, hist_2, 0);
-        std::cout << "Method [0] result = " << result << std::endl;
-
-        Mat histImage2(hist_h, hist_w, CV_8UC1, Scalar(0));
-        normalize(hist_2, hist_2, 0, histImage2.rows, NORM_MINMAX, -1, Mat());
-
-        for (int i = 1; i < histSize; i++)
-        {
-            line(histImage2, Point(bin_w * (i - 1), hist_h - cvRound(hist_2.at<float>(i - 1))),
-                 Point(bin_w * (i), hist_h - cvRound(hist_2.at<float>(i))),
-                 Scalar(255), 2, 8, 0);
-        }
+        double ret = compareHist(histData1, histData2, 0);
+        std::cout << "Method [0] result = " << ret << std::endl;
 
         cv::Mat combined_img;
-        cv::vconcat(histImage2, histImage1, combined_img); // 将两个图像水平拼接在一起
+        cv::vconcat(histImage1, histImage2, combined_img); // 将两个图像水平拼接在一起
 
 				// 定义融合位置
 				int startX = 100; // 融合起始位置的x坐标
 				int startY = 100; // 融合起始位置的y坐标
 				blendImages(frame, combined_img, startX, startY);
-
 
 /****************************************/
         // 调整显示图像框大小
