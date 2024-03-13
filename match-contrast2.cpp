@@ -7,6 +7,47 @@
 using namespace std;
 using namespace cv;
 
+// 将小图片融合到大图片中
+void blendImages(Mat& largeImage, Mat& smallImage, int startX, int startY)
+{
+    // 检查小图片尺寸是否超过大图片尺寸
+    if (smallImage.cols > largeImage.cols - startX || smallImage.rows > largeImage.rows - startY)
+    {
+        // 计算缩放比例
+        double scale = min((double)(largeImage.cols - startX) / smallImage.cols, (double)(largeImage.rows - startY) / smallImage.rows);
+
+        // 等比例缩放小图片
+        resize(smallImage, smallImage, Size(), scale, scale);
+    }
+
+    // 创建感兴趣区域（ROI）并将小图片放置在该区域内
+    Mat roi = largeImage(Rect(startX, startY, smallImage.cols, smallImage.rows));
+/*
+		// 定义融合权重
+    // 使用融合函数，背景颜色不会透明
+		double alpha = 0.5; // 第一张图片的权重
+		double beta = 0.5; // 第二张图片的权重
+		double gamma = 0.0; // 亮度调整参数
+
+	  // 将两张图片融合
+		Mat blendedImage;
+		addWeighted(roi, alpha, smallImage, beta, gamma, roi);
+*/
+		// 将小图片融合到大图片中（带有透明度通道）
+    // 黑色背景/白色画面，将黑色背景设置为透明效果
+    for (int y = 0; y < smallImage.rows; ++y)
+    {
+        for (int x = 0; x < smallImage.cols; ++x)
+        {
+						uchar pixel = smallImage.at<uchar>(y, x);
+            if (pixel > 0) // 检查像素值是否大于0
+            {
+                roi.at<uchar>(y, x) = pixel;
+            }
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 3) {
         std::cerr << "Usage: ./template_matching_video <template_image_path> <video_path> [phash|hist|ssim]" << std::endl;
@@ -51,14 +92,14 @@ int main(int argc, char** argv) {
     int hist_w = 512;
     int hist_h = 400;
     int bin_w = cvRound((double)hist_w / histSize);
-    Mat histImage1(hist_h, hist_w, CV_8UC1, Scalar(255));
+    Mat histImage1(hist_h, hist_w, CV_8UC1, Scalar(0));
     normalize(hist_1, hist_1, 0, histImage1.rows, NORM_MINMAX, -1, Mat());
 
     for (int i = 1; i < histSize; i++)
     {
         line(histImage1, Point(bin_w * (i - 1), hist_h - cvRound(hist_1.at<float>(i - 1))),
              Point(bin_w * (i), hist_h - cvRound(hist_1.at<float>(i))),
-             Scalar(0), 2, 8, 0);
+             Scalar(255), 2, 8, 0);
     }
 
     while (cap.read(frame)) {
@@ -99,31 +140,33 @@ int main(int argc, char** argv) {
         double result = compareHist(hist_1, hist_2, 0);
         std::cout << "Method [0] result = " << result << std::endl;
 
-        Mat histImage2(hist_h, hist_w, CV_8UC1, Scalar(255));
+        Mat histImage2(hist_h, hist_w, CV_8UC1, Scalar(0));
         normalize(hist_2, hist_2, 0, histImage2.rows, NORM_MINMAX, -1, Mat());
 
         for (int i = 1; i < histSize; i++)
         {
             line(histImage2, Point(bin_w * (i - 1), hist_h - cvRound(hist_2.at<float>(i - 1))),
                  Point(bin_w * (i), hist_h - cvRound(hist_2.at<float>(i))),
-                 Scalar(0), 2, 8, 0);
+                 Scalar(255), 2, 8, 0);
         }
 
         cv::Mat combined_img;
         cv::vconcat(histImage2, histImage1, combined_img); // 将两个图像水平拼接在一起
 
-        // 显示直方图
-        namedWindow("Histogram", WINDOW_AUTOSIZE);
-        imshow("Histogram", combined_img);
-   
+				// 定义融合位置
+				int startX = 100; // 融合起始位置的x坐标
+				int startY = 100; // 融合起始位置的y坐标
+				blendImages(frame, combined_img, startX, startY);
+
+
 /****************************************/
         // 调整显示图像框大小
-        cv::resize(frame, frame, cv::Size(frame.cols/2, frame.rows/2));
+        // cv::resize(frame, frame, cv::Size(frame.cols/2, frame.rows/2));
 
 	      std::cout << ss.str() << std::endl;
 
         // Print maxVal on the image
-        cv::putText(frame, ss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
+        // cv::putText(frame, ss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
 
         cv::imshow("Result", frame);
 
