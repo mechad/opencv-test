@@ -70,6 +70,20 @@ pair<Mat, Mat> plotHistogram(const Mat& image, int histSize, const float* histRa
     return make_pair(histImage, hist);
 }
 
+void mythreshold(cv::Mat &frame, int threshold)
+{
+    for (int i = 0; i < frame.rows; i++)
+    {
+        for (int j = 0; j < frame.cols; j++)
+        {
+            if (frame.at<uchar>(i, j) > threshold)
+            {
+                frame.at<uchar>(i, j) = 255;
+            }
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc < 3) {
         std::cerr << "Usage: ./template_matching_video <template_image_path> <video_path> [phash|hist|ssim]" << std::endl;
@@ -113,6 +127,9 @@ int main(int argc, char** argv) {
         auto start = std::chrono::high_resolution_clock::now();
         // 使用灰度图进行模板匹配时，耗时0.07 秒，同样的数据采用彩图进行匹配需要花费0.21s,相差了3倍
         cv::cvtColor(frame, frame, cv::COLOR_RGB2GRAY); //将原图转换为灰度图像
+        // equalizeHist(frame, frame);
+        mythreshold(frame, 150);
+
         cv::matchTemplate(frame, templ, result, cv::TM_CCOEFF_NORMED);
         auto end = std::chrono::high_resolution_clock::now();
 
