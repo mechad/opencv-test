@@ -84,6 +84,84 @@ void mythreshold(cv::Mat &frame, int threshold)
     }
 }
 
+void mythreshold2(cv::Mat &frame, int threshold)
+{
+    int neighborhood_size = 3; // 可以设置为3或5，表示相邻像素的邻域大小
+    int diff_threshold = 50; // 设定的阈值差异
+
+    cv::Mat binary_frame = cv::Mat::zeros(frame.size(), CV_8UC1);
+
+    for (int i = 0; i < frame.rows; i++)
+    {
+        for (int j = 0; j < frame.cols; j++)
+        {
+            int count = 0;
+            int sum = 0;
+
+            for (int k = i - neighborhood_size/2; k <= i + neighborhood_size/2; k++)
+            {
+                for (int l = j - neighborhood_size/2; l <= j + neighborhood_size/2; l++)
+                {
+                    if (k >= 0 && k < frame.rows && l >= 0 && l < frame.cols)
+                    {
+                        sum += frame.at<uchar>(k, l);
+                        count++;
+                    }
+                }
+            }
+
+            int avg = sum / count;
+
+            if (abs(threshold - avg) < diff_threshold)
+            {
+                binary_frame.at<uchar>(i, j) = 255;
+            }
+        }
+    }
+    cv::imshow("bin", binary_frame);
+    // 将原图与二值图进行与操作
+    for (int i = 0; i < frame.rows; i++)
+    {
+        for (int j = 0; j < frame.cols; j++)
+        {
+            if (binary_frame.at<uchar>(i, j) == 255 ) frame.at<uchar>(i, j) = 255;
+        }
+    }
+}
+
+void mythreshold3(cv::Mat &frame, int threshold)
+{
+    cv::Mat edges;
+    cv::Canny(frame, edges, threshold, threshold * 2); // 使用Canny边缘检测算法
+
+    cv::Mat binary_frame = cv::Mat::zeros(frame.size(), CV_8UC1);
+
+    for (int i = 0; i < frame.rows; i++)
+    {
+        for (int j = 0; j < frame.cols; j++)
+        {
+            if (edges.at<uchar>(i, j) == 0) // 边缘检测结果为0表示平坦区域
+            {
+                binary_frame.at<uchar>(i, j) = 255;
+            }
+        }
+    }
+    cv::imshow("bin", edges);
+    // 将原图与二值图进行与操作
+    for (int i = 0; i < frame.rows; i++)
+    {
+        for (int j = 0; j < frame.cols; j++)
+        {
+            if (binary_frame.at<uchar>(i, j) == 255 && (abs(threshold - frame.at<uchar>(i, j)) < 50))
+            {
+                frame.at<uchar>(i, j) = 255;
+            }
+        }
+    }
+}
+
+
+
 int main(int argc, char** argv) {
     if (argc < 3) {
         std::cerr << "Usage: ./template_matching_video <template_image_path> <video_path> [phash|hist|ssim]" << std::endl;
@@ -128,8 +206,10 @@ int main(int argc, char** argv) {
         // 使用灰度图进行模板匹配时，耗时0.07 秒，同样的数据采用彩图进行匹配需要花费0.21s,相差了3倍
         cv::cvtColor(frame, frame, cv::COLOR_RGB2GRAY); //将原图转换为灰度图像
         // equalizeHist(frame, frame);
-        mythreshold(frame, 150);
-
+        // mythreshold3(frame, 188);
+        cv::Mat edges;
+        cv::Canny(frame, edges, 188, 188 * 2); // 使用Canny边缘检测算法
+        int non_zero_pixels = cv::countNonZero(edges); // 统计非0像素的个数
         cv::matchTemplate(frame, templ, result, cv::TM_CCOEFF_NORMED);
         auto end = std::chrono::high_resolution_clock::now();
 
@@ -146,7 +226,8 @@ int main(int argc, char** argv) {
         // Convert maxVal to string
         std::stringstream ss;
         ss << "Similarity: (max)" << maxVal;
-	      ss << "  (min) " << minVal << std::endl;
+	    ss << "  (min) " << minVal << std::endl;
+        
         if (maxVal > 0.4)
         {
           cv::rectangle(frame, matchLoc, cv::Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), cv::Scalar(0, 255, 0), 2);
@@ -178,8 +259,8 @@ int main(int argc, char** argv) {
         // 调整显示图像框大小
         // cv::resize(frame, frame, cv::Size(frame.cols/2, frame.rows/2));
 
-	      std::cout << ss.str() << std::endl;
-
+	    std::cout << ss.str() << std::endl;
+        std::cout << "Number of non-zero pixels: " << non_zero_pixels << std::endl;
         // Print maxVal on the image
         // cv::putText(frame, ss.str(), cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
 
