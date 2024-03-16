@@ -19,6 +19,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Error: Unable to read one or both images." << std::endl;
         return -1;
     }
+    cv::threshold(image2, image2, 200, 255, cv::THRESH_BINARY);
 
     // 确保两张图片大小相同
     cv::resize(image2, image2, cv::Size(image1.cols, image1.rows));
