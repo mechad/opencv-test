@@ -210,9 +210,11 @@ int main(int argc, char** argv) {
             
             auto start = std::chrono::high_resolution_clock::now();
 
-            mythreshold3(rotatedImg, 200); // 识别率99.52%, 耗时：0.0040s
+            // mythreshold3(rotatedImg, 200); // 识别率99.52%, 耗时：0.0040s
             // mythreshold2(rotatedImg, 200); // 识别率79.90%
             // mythreshold(rotatedImg, 150); // 识别率99.52%, 耗时：0.0026s
+            // cv::threshold(rotatedImg, rotatedImg, 160, 255, cv::THRESH_BINARY); // 识别率98.56%, 耗时：0.0024s
+            cv::adaptiveThreshold(rotatedImg, rotatedImg, 255, cv::ADAPTIVE_THRESH_GAUSSIAN_C, cv::THRESH_BINARY, 11, 2); // 识别率0 %, 耗时：0.0032s
             // cv::threshold(rotatedImg, rotatedImg, 140, 255, cv::THRESH_BINARY);
 
             std::vector<std::string> barcodeResults = barcodeRecognition(rotatedImg);
