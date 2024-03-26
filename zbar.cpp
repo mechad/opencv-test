@@ -173,15 +173,9 @@ int main(int argc, char** argv) {
 
     scanner.set_config(ZBAR_NONE, ZBAR_CFG_ENABLE, barcodeTypes);
     while (cap.read(frame)) {
-        auto start = std::chrono::high_resolution_clock::now();
         cv::Mat grayFrame;
         cv::cvtColor(frame, grayFrame, cv::COLOR_RGB2GRAY); //将原图转换为灰度图像
         cv::matchTemplate(grayFrame, templ, result, cv::TM_CCOEFF_NORMED);
-        auto end = std::chrono::high_resolution_clock::now();
-
-        // 计算执行时间
-        std::chrono::duration<double> duration = end - start;
-        std::cout << "函数执行时间: " << duration.count() << " 秒" << std::endl;
 
         double minVal, maxVal;
         cv::Point minLoc, maxLoc;
@@ -202,9 +196,9 @@ int main(int argc, char** argv) {
 
             cv::rectangle(frame, matchLoc, cv::Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), cv::Scalar(0, 255, 0), 2);
             cv::Rect barcodeRect;
-            barcodeRect.x = 600;
+            barcodeRect.x = 680;
             barcodeRect.y = 200;
-            barcodeRect.width = 200;
+            barcodeRect.width = 100;
             barcodeRect.height = 500;
             
             cv::Point matchStart(matchLoc.x + barcodeRect.x, matchLoc.y + barcodeRect.y);
@@ -213,10 +207,22 @@ int main(int argc, char** argv) {
             // 旋转图像
             cv::Mat rotatedImg = matchedImage(barcodeRect);
             cv::rotate(rotatedImg, rotatedImg, cv::ROTATE_90_CLOCKWISE);
-            mythreshold3(rotatedImg, 180);
+            
+            auto start = std::chrono::high_resolution_clock::now();
+
+            mythreshold3(rotatedImg, 200); // 识别率99.52%, 耗时：0.0040s
+            // mythreshold2(rotatedImg, 200); // 识别率79.90%
+            // mythreshold(rotatedImg, 150); // 识别率99.52%, 耗时：0.0026s
             // cv::threshold(rotatedImg, rotatedImg, 140, 255, cv::THRESH_BINARY);
-            cv::imshow("barcode", rotatedImg);
+
             std::vector<std::string> barcodeResults = barcodeRecognition(rotatedImg);
+            
+            auto end = std::chrono::high_resolution_clock::now();
+
+            // 计算执行时间
+            std::chrono::duration<double> duration = end - start;
+            std::cout << "函数执行时间: " << duration.count() << " 秒" << std::endl;
+            cv::imshow("barcode", rotatedImg);
             // 遍历打印结果向量中的条码内容
             for (const std::string& barcode : barcodeResults) {
                 std::cout << "条码内容：" << barcode << std::endl;
