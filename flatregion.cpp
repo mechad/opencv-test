@@ -1,4 +1,5 @@
 #include <opencv2/opencv.hpp>
+#include <chrono>
 
 bool isFlatRegion(const cv::Mat& image)
 {
@@ -11,9 +12,9 @@ bool isFlatRegion(const cv::Mat& image)
     cv::Mat edges;
     cv::Canny(grayImage, edges, 100, 200); // 使用Canny边缘检测算法
 
-    cv::namedWindow("edges", cv::WINDOW_AUTOSIZE);
-    cv::imshow("edges", edges);
-    cv::waitKey(0);
+    // cv::namedWindow("edges", cv::WINDOW_AUTOSIZE);
+    // cv::imshow("edges", edges);
+    // cv::waitKey(0);
 
     int nonZeroCount = cv::countNonZero(edges); // 统计非零像素的个数
     std::cout << "nonZeroCount: " << nonZeroCount << std::endl;
@@ -30,14 +31,21 @@ int main( int argc, char** argv )
     }
 
     cv::Mat image = cv::imread(argv[1]); // 读取图像
-
     if (image.empty())
     {
         std::cout << "Error: Could not read the image file." << std::endl;
         return -1;
     }
 
-    if (isFlatRegion(image))
+    auto start = std::chrono::high_resolution_clock::now();
+    auto flat = isFlatRegion(image);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    // 计算执行时间
+    std::chrono::duration<double> duration = end - start;
+    std::cout << "函数执行时间: " << duration.count() << " 秒" << std::endl;
+
+    if (flat)
     {
         std::cout << "The center region of the image is a flat region." << std::endl;
     }
