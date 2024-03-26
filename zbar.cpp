@@ -165,6 +165,9 @@ int main(int argc, char** argv) {
 
     cv::Mat frame;
     cv::Mat result;
+    int total = 0;
+    int barcnt = 0;
+
     // 创建ZBar解码器
     int barcodeTypes = ZBAR_CODE128; // 只识别一个即可 ZBAR_EAN13 | ZBAR_CODE39 | ZBAR_CODE128;
 
@@ -210,6 +213,7 @@ int main(int argc, char** argv) {
             // 旋转图像
             cv::Mat rotatedImg = matchedImage(barcodeRect);
             cv::rotate(rotatedImg, rotatedImg, cv::ROTATE_90_CLOCKWISE);
+            mythreshold3(rotatedImg, 180);
             // cv::threshold(rotatedImg, rotatedImg, 140, 255, cv::THRESH_BINARY);
             cv::imshow("barcode", rotatedImg);
             std::vector<std::string> barcodeResults = barcodeRecognition(rotatedImg);
@@ -217,8 +221,10 @@ int main(int argc, char** argv) {
             for (const std::string& barcode : barcodeResults) {
                 std::cout << "条码内容：" << barcode << std::endl;
                 addText(frame, barcode ,matchLoc);
+                barcnt ++;
             }
         }
+        total ++;
 
         cv::Rect rectangle(matchLoc, cv::Point( matchLoc.x + templ.cols , matchLoc.y + templ.rows ));
         cv::Mat matchedImage = frame(rectangle);
@@ -233,6 +239,9 @@ int main(int argc, char** argv) {
         }
     }
 
+    double recognitionRate = static_cast<double>(barcnt) / total * 100;
+
+    std::cout << "条码识别率： " << barcnt << "/" << total << " = " << std::fixed << std::setprecision(2) << recognitionRate << std::endl;
     cap.release();
     cv::destroyAllWindows();
 
