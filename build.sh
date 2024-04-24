@@ -15,5 +15,5 @@ fi
 source_cpp=$(basename $1)
 bin=${source_cpp%.*}
 
-g++ -o $bin $1 `pkg-config --libs --static opencv4`
+g++ -o $bin $1 `pkg-config --libs --static opencv4` -lzbar
 
